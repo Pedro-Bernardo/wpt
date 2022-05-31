@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/resources/channel.sub.js"></script>
+<script src=/websockets/constants.sub.js></script>
+<script src=/portals/resources/stash-utils.sub.js></script>
+<script src="/common/utils.js"></script>
+
+<body>
+</body>
+
+<script>
+
+const delay = (time) =>
+      new Promise((resolve) => setTimeout(resolve, time))
+
+setup({explicit_timeout: true});
+
+const timeout_fn = async(time, label) => {
+  await delay(time) 
+  assert_true(false, label)
+}
+
+// function run_test(test_fn, timeout, label) {
+//   return Promise.race(
+//     [ test_fn(), 
+//       timeout_fn(timeout, label)
+//     ]);
+// }
+
+
+function run_test(timeout, label, ...fns) {
+  return Promise.race(
+    [ Promise.all(fns.map((x) => x())), 
+      timeout_fn(timeout, label)
+    ]);
+}
+
+
+const sleep = (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const openPopup = () => {
+    let WW = window.open(
+        '/blank.html',
+        'targetWindow',
+        `toolbar=no,location=no,status=no,menubar=no,scrollbars=no,resizable=yes,left=${screen.width-250},width=250,height=250`
+    )
+
+    return WW
+}
+
+promise_test(async t => {
+  // window.setTimeout(() => { error(new AssertionError("timeout")) }, 100);
+
+    let url = `http://www1.web-platform.test:8000/tinker/xsleaks/server.py?frm=`;
+
+    let uuid = token();
+    let class0 = token();
+    let class1 = token();
+
+
+    const leak = async (url) => {
+        let wproxy = window.open(url)
+        await sleep(500)
+        return wproxy.length;
+    };
+
+    let leak0 = await leak(url + "0");
+    let leak1 = await leak(url + "1");
+
+    assert_not_equals(leak0, leak1, "XS-LEAK FRAME COUNTING")
+
+    let leak5= await leak(url + "5");
+    assert_equals(leak5, 5, "XS-LEAK FRAME COUNTING")
+
+
+
+}, "XS-LEAK TEST");
+
+</script>
+
