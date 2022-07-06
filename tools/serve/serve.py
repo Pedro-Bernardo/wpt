@@ -15,6 +15,7 @@ import time
 import traceback
 import urllib
 import uuid
+import pprint
 from collections import defaultdict, OrderedDict
 from io import IOBase
 from itertools import chain, product
@@ -1031,6 +1032,7 @@ class ConfigBuilder(config.ConfigBuilder):
     computed_properties = ["ws_doc_root"] + config.ConfigBuilder.computed_properties
 
     def __init__(self, logger, *args, **kwargs):
+        print("kwargs:", kwargs)
         if "subdomains" not in kwargs:
             kwargs["subdomains"] = _subdomains
         if "not_subdomains" not in kwargs:
@@ -1062,19 +1064,26 @@ class ConfigBuilder(config.ConfigBuilder):
 
 
 def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs):
-    rv = config_cls(logger)
+    if "subdomains" in kwargs:
+        rv = config_cls(logger, subdomains=kwargs["subdomains"])
+    else:
+        rv = config_cls(logger)
+
+    print("kwargs in build_config", kwargs)
 
     enable_http2 = kwargs.get("h2")
     if enable_http2 is None:
         enable_http2 = True
     if enable_http2:
         rv._default["ports"]["h2"] = [9000]
-
+    print("OVERRIDE PATH", override_path)
+    print("DATA1", rv._data)
     if override_path and os.path.exists(override_path):
         with open(override_path) as f:
             override_obj = json.load(f)
         rv.update(override_obj)
 
+    print("DATA2", rv._data)
     if kwargs.get("config_path"):
         other_path = os.path.abspath(os.path.expanduser(kwargs.get("config_path")))
         if os.path.exists(other_path):

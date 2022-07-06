@@ -24,7 +24,20 @@ def _merge_dict(base_dict, override_dict):
             if isinstance(value, dict):
                 rv[key] = _merge_dict(value, override_dict[key])
             else:
+                print("setting", key, "to", override_dict[key])
                 rv[key] = override_dict[key]
+
+    return rv
+
+def _real_merge_dict(base_dict, override_dict):
+    rv = base_dict.copy()
+    for key, value in override_dict.items():
+        if isinstance(value, dict):
+            rv[key] = _merge_dict(value, override_dict[key])
+        else:
+            print("setting", key, "to", override_dict[key])
+            rv[key] = override_dict[key]
+
     return rv
 
 
@@ -215,6 +228,7 @@ class ConfigBuilder:
 
         for k in self._default:
             if k in override:
+                print("setting", k)
                 self._set_override(k, override.pop(k))
 
         for k, new_k in _renamed_props.items():
@@ -227,15 +241,25 @@ class ConfigBuilder:
                 )
                 self._set_override(new_k, override.pop(k))
 
+        for o in override:
+            self._add_entry(o, override[o])
+
+
         if override:
             k = next(iter(override))
-            raise KeyError("unknown config override '%s'" % k)
+            # raise KeyError("unknown config override '%s'" % k)
+
+    def _add_entry(self, k, v):
+        self._data[k] = v
 
     def _set_override(self, k, v):
         old_v = self._data[k]
         if isinstance(old_v, dict):
-            self._data[k] = _merge_dict(old_v, v)
+            print("merging")
+            # self._data[k] = _merge_dict(old_v, v)
+            self._data[k] = _real_merge_dict(old_v, v)
         else:
+            print("adding")
             self._data[k] = v
 
     def __enter__(self):
@@ -326,3 +350,6 @@ class ConfigBuilder:
                     "ca_cert_path": ca_cert_path,
                     "cert_path": cert_path,
                     "encrypt_after_connect": data["ssl"].get("encrypt_after_connect", False)}
+
+    def get_data(self):
+        return self._data
