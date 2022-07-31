@@ -2,6 +2,7 @@ from wptserve.utils import isomorphic_decode, isomorphic_encode
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 import json
+import ssl, websocket, asyncio
 
 
 GLOBALS = {'uuid' : "", "stash" : ""}
@@ -29,14 +30,12 @@ def caulculate_filename(request):
     port = int(request.url_parts.netloc.split(":")[1])
     scheme = request.url_parts.scheme
     resource = None
-    correlator = None
     try :
-      correlator = query['corr'][0]
       resource = query['res'][0]
     except:
       pass
 
-    filename = f"{request.method}.{scheme}.{domain}.{port}.{correlator}_{resource}"
+    filename = f"{request.method}.{scheme}.{domain}.{port}.{resource}"
 
     return filename
 
@@ -67,20 +66,76 @@ def build_response(response, headers, body):
   # response.code = code
   # response.content = body
 
-  print("[+]", response, response.headers, response.code, response.content)
+  # print("[+]", response, response.headers, response.code, response.content)
   return response
 
+# def on_error(ws, error):
+#     print("ON ERROR", error)
+
+
+def stash_add(uuid, data):
+	try:
+		url = "wss://web-platform.test:8666/stash_responder_blocking"
+		ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+		# localhost_pem = pathlib.Path().with_name("localhost.pem")
+		cert_path = "../tools/certs/cacert.pem"
+		ssl_context.load_verify_locations(cert_path)
+		# print(dir(ssl_context))
+		ws = websocket.create_connection(url, sslopt={'context' : ssl_context}) #sslopt={"cert_reqs": ssl.CERT_NONE})
+		# ws = websocket.create_connection(url, sslopt={"cert_reqs": ssl.CERT_NONE})
+		print(ws)
+
+		ws.send(json.dumps({'action': 'set', 'key': uuid, 'value': data}, separators=(',', ':')))
+
+		# websocket
+
+		# print("SENDING TO WSS")
+
+		# async with websockets.connect(url, ssl=ssl_context) as websocket:
+		# 	a = await websocket.send()
+		# 	print("websocket send result", a)
+	except Exception as e:
+		print("oops", e)
+
+
 def main(request, response):
-    filename = caulculate_filename(request)
-    headers = None
-    body = None
-    with open(f"verifier/responses/{filename}.headers", "r") as f:
-      headers = f.read()
+	print("request", request)
 
-    with open(f"verifier/responses/{filename}.body", "r") as f:
-      body = f.read()
+	filename = caulculate_filename(request)
+	print("fname", filename)
 
-    build_response(response, headers, body)
+	headers = None
+	body = None
+	try:
+		with open(f"verifier/responses/{filename}.headers", "r") as f:
+			headers = f.read()
 
-    return
+		with open(f"verifier/responses/{filename}.body", "r") as f:
+			body = f.read()
 
+		with open(f"verifier/responses/{filename}.ver", "r") as f:
+			uuid = f.read().strip()
+
+		build_response(response, headers, body)
+
+		try:
+			stash_add(uuid, filename)
+			# asyncio.run(stash_add(uuid, filename))
+		except Exception as e:
+			print("aaah...", e)
+		# try:
+		# 	print(request.server)
+		# 	print(request.server.stash)
+		# 	print("DIR", request.server.config)
+		# 	print("Addr", request.server.stash.manager.address)
+		# 	print("Addr", request.server.stash.manager.get_dict())
+		# 	print("Addr", request.server.stash.manager.shared_data)
+		# 	print("QUEUE", request.server.stash.get_queue)
+		# 	print(uuid)
+		# 	# request.server.stash.put(uuid, filename)
+		# except Exception as e:
+		# 	print("aaah..", e)
+
+		return
+	except:
+		response.code = 500

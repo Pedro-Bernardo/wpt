@@ -39,22 +39,29 @@ promise_test(async t => {
   // window.setTimeout(() => { error(new AssertionError("timeout")) }, 100);
 
   let uuid = token();
+  console.log(STASH_RESPONDER)
 
-  window.open(`server.py?corr=1&res=48&uuid=${uuid}&` + "stash=" + btoa(STASH_RESPONDER), "_blank");
-  
-  await run_test(1000, "Timed out", () => 
-    StashUtils.takeValue(uuid).then(t.step_func_done(value => {
-        assert_equals(value, "PWNED", "CSP INCONSISTENCY 1");
-    })), async () => 
-        assert_equals("PWNED", "PWNED", "CSP INCONSISTENCY 2")
-    )
+  window.open(`http://30.31.test:1024/verifier/server.py?res=33`); //&uuid=${uuid}&` + "stash=" + btoa(STASH_RESPONDER), "_blank");
+  // http://21.22.test:1025/verifier/server.py?corr=3&res=24
+  await run_test(5000, "Timed out", () => 
+    StashUtils.takeValue("7d865c78-b8e3-49f6-b047-a4c76fb9ad25").then(t.step_func(value => {
+        assert_equals(value, "obghtagajq", "CSP INCONSISTENCY 1");
+    }))
+    , () => 
+    StashUtils.takeValue("c7df464b-ec9e-4896-8de5-53047b19b88a").then(t.step_func(value => {
+        assert_equals(value, "GET.http.21.22.test.1025.24", "CSP INCONSISTENCY 2");
+    }))
+  );
+    // , async () => 
+    //     assert_equals("PWNED", "PWNED", "CSP INCONSISTENCY 2")
+    // );
 
-  await Promise.race(
-    [ StashUtils.takeValue(uuid).then(t.step_func_done(value => {
-        assert_equals(value, "PWNED", "CSP INCONSISTENCY");
-      })), 
-      fn(1000, "Timed out")
-    ]);
+  // await Promise.race(
+  //   [ StashUtils.takeValue(uuid).then(t.step_func_done(value => {
+  //       assert_equals(value, "PWNED", "CSP INCONSISTENCY");
+  //     })), 
+  //     fn(1000, "Timed out")
+  //   ]);
 
 }, "CSP INCONSISTENCY ATTACK TRACE");
 
