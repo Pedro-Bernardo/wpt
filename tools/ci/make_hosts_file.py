@@ -19,18 +19,23 @@ def run(**kwargs):
     config_path = os.path.join(repo_root, "config.json")
     # ugly patch to pass my subdomains to the config builder
 
-    with open(config_path, "r") as f:
-        try:
-            subdoms = json.loads(f.read())["subdomains"]
-        except:
-            subdoms = None
+    try:
+        with open(config_path, "r") as f:
+            try:
+                subdoms = json.loads(f.read())["subdomains"]
+            except:
+                subdoms = None
 
 
-    if subdoms:
-        config_builder = build_config(None, override_path=config_path, ssl={"type": "none"}, subdomains=subdoms)
-    else:
+        if subdoms:
+            config_builder = build_config(None, override_path=config_path, ssl={"type": "none"}, subdomains=subdoms)
+        else:
+            config_builder = build_config(None, override_path=config_path, ssl={"type": "none"})
+            
+
+        with config_builder as config:
+            print(make_hosts_file(config, kwargs["address"]))
+    except:
         config_builder = build_config(None, override_path=config_path, ssl={"type": "none"})
-        
-
-    with config_builder as config:
-        print(make_hosts_file(config, kwargs["address"]))
+        with config_builder as config:
+            print(make_hosts_file(config, kwargs["address"]))

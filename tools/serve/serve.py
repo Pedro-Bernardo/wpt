@@ -740,7 +740,7 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
                   mp_context, log_handlers, **kwargs):
     servers = defaultdict(list)
     for scheme, ports in ports.items():
-        assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
+        # assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
 
         # If trying to start HTTP/2.0 server, check compatibility
         if scheme == 'h2' and not http2_compatible():

@@ -43,11 +43,20 @@ promise_test(async t => {
 
   window.open(`http://30.31.test:1024/verifier/server.py?res=33`); //&uuid=${uuid}&` + "stash=" + btoa(STASH_RESPONDER), "_blank");
   // http://21.22.test:1025/verifier/server.py?corr=3&res=24
+  // await run_test(5000, "Timed out", () => 
+  //   StashUtils.takeValue("7d865c78-b8e3-49f6-b047-a4c76fb9ad25").then(t.step_func(value => {
+  //       assert_equals(value, "obghtagajq", "CSP INCONSISTENCY 1");
+  //   }))
+  //   , () => 
+  //   StashUtils.takeValue("c7df464b-ec9e-4896-8de5-53047b19b88a").then(t.step_func(value => {
+  //       assert_equals(value, "GET.http.21.22.test.1025.24", "CSP INCONSISTENCY 2");
+  //   }))
+  // );
   await run_test(5000, "Timed out", () => 
     StashUtils.takeValue("7d865c78-b8e3-49f6-b047-a4c76fb9ad25").then(t.step_func(value => {
         assert_equals(value, "obghtagajq", "CSP INCONSISTENCY 1");
-    }))
-    , () => 
+    })));
+  await run_test(5000, "Timed out", () => 
     StashUtils.takeValue("c7df464b-ec9e-4896-8de5-53047b19b88a").then(t.step_func(value => {
         assert_equals(value, "GET.http.21.22.test.1025.24", "CSP INCONSISTENCY 2");
     }))
