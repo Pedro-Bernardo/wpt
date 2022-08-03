@@ -100,7 +100,20 @@ def stash_add(uuid, data):
 
 def main(request, response):
 	print("request", request)
+	
+	# query = parse_qs(urlparse(request.url).query)
+	# if 'echo' in query and query['echo'][0] == 'csp':
+	# 	csp = request.headers.get(b'content-security-policy', None)
 
+	# 	response.headers.append(b"Content-Type", b"text/html; charset=utf-8")
+	# 	# allow the script to read the response text
+	# 	response.headers.append(b'Access-Control-Allow-Origin:', b'*')
+	# 	# reply with the csp in the body
+	# 	response.content = csp
+
+	# 	return	
+
+	# if it is not an echo request, proceed as usual
 	filename = caulculate_filename(request)
 	print("fname", filename)
 
