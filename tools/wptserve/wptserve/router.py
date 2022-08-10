@@ -150,6 +150,7 @@ class Router:
         if isinstance(methods, (bytes, str)) or methods is any_method:
             methods = [methods]
         for method in methods:
+            # print("REGISTERING", compile_path_match(path))
             self.routes.append((method, compile_path_match(path), handler))
             self.logger.debug("Route pattern: %s" % self.routes[-1][1].pattern)
 

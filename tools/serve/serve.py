@@ -1109,6 +1109,7 @@ def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs)
             raise ValueError("%s path %s does not exist" % (title, value))
         setattr(rv, key, value)
 
+    print("DA CONFIG", rv)
     return rv
 
 
