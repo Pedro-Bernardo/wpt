@@ -23,6 +23,17 @@ TODO:
 4. split each header by ":" and add response header
 """
 
+def calculate_sw_filename(request):
+    query = parse_qs(urlparse(request.url).query)
+
+    domain = request.url_parts.netloc.split(":")[0]
+    port = int(request.url_parts.netloc.split(":")[1])
+    scheme = request.url_parts.scheme
+
+    filename = f"{scheme}.{domain}.{port}_sw"
+
+    return filename
+
 def caulculate_filename(request):
     query = parse_qs(urlparse(request.url).query)
 
@@ -35,7 +46,8 @@ def caulculate_filename(request):
     except:
       pass
 
-    filename = f"{request.method}.{scheme}.{domain}.{port}.{resource}"
+    filename = f"{request.method}.{scheme}.{domain}.{port}.{resource if resource else ''}"
+
 
     return filename
 
@@ -101,7 +113,18 @@ def stash_add(uuid, data):
 def main(request, response):
 	print("request", request)
 	
-	# query = parse_qs(urlparse(request.url).query)
+	query = parse_qs(urlparse(request.url).query)
+	if 'sw' in query:
+		# asking for the service worker registratin
+		filename = calculate_sw_filename(request)
+		print("IN A SW REQUEST", filename)
+		with open(f"verifier/responses/{filename}.html", "r") as f:
+			response.content = f.read()
+
+		response.headers.append(b"Content-Type", b"text/html; charset=utf-8")
+		return
+
+
 	# if 'echo' in query and query['echo'][0] == 'csp':
 	# 	csp = request.headers.get(b'content-security-policy', None)
 
