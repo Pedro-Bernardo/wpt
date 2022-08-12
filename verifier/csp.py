@@ -67,7 +67,6 @@ def reset_data_file():
 
 
 def main(request, response):
-	print(request.url, request.method)
 	with LOCK:
 		if not os.path.exists(DATA_FILE):
 			reset_data_file()
@@ -78,11 +77,11 @@ def main(request, response):
 		
 		test_results['counter'] += 1
 
-		print(request.url, request.method)
+		print(request.method, request.url)
 		print(test_results)
 
 		if request.method == 'POST':
-			print("GOT A POST", request.content)
+			print("[BLOCKED]", request.body)
 
 		elif request.method == 'GET':
 			query = parse_qs(urlparse(request.url).query)
@@ -100,8 +99,6 @@ def main(request, response):
 			csp_signature = ''.join([test_results[test][k] for k in sorted_keys])
 			os.remove(DATA_FILE)
 			stash_add(REPORT_UUID, csp_signature)
-
-		return 
 
 	# query = parse_qs(urlparse(request.url).query)
 	# print(query)
