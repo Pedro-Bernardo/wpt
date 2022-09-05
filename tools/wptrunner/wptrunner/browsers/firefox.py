@@ -558,6 +558,8 @@ class ProfileCreator:
                  ca_certificate_path):
         self.logger = logger
         self.prefs_root = prefs_root
+        print("PREFS ROOT", prefs_root)
+        print("CONFIG", config)
         self.config = config
         self.test_type = test_type
         self.extra_prefs = extra_prefs
@@ -581,6 +583,7 @@ class ProfileCreator:
         profile = FirefoxProfile(preferences=preferences,
                                  restore=False,
                                  **kwargs)
+
         self._set_required_prefs(profile)
         if self.ca_certificate_path is not None:
             self._setup_ssl(profile)
@@ -593,6 +596,7 @@ class ProfileCreator:
         pref_paths = []
 
         profiles = os.path.join(self.prefs_root, 'profiles.json')
+        print("PROFILES", profiles)
         if os.path.isfile(profiles):
             with open(profiles) as fh:
                 for name in json.load(fh)['web-platform-tests']:
@@ -611,6 +615,7 @@ class ProfileCreator:
                     pref_paths.append(path)
 
         for path in pref_paths:
+            print(path)
             if os.path.exists(path):
                 prefs.add(Preferences.read_prefs(path))
             else:
@@ -619,6 +624,7 @@ class ProfileCreator:
         # Add any custom preferences
         prefs.add(self.extra_prefs, cast=True)
 
+        print(prefs())
         return prefs()
 
     def _set_required_prefs(self, profile):
@@ -634,6 +640,7 @@ class ProfileCreator:
             "network.proxy.type": 0,
             "places.history.enabled": False,
             "network.preload": True,
+            "security.mixed_content.block_active_content": False
         })
         if self.e10s:
             profile.set_preferences({"browser.tabs.remote.autostart": True})
@@ -664,6 +671,7 @@ class ProfileCreator:
             return
 
         self.logger.info("Setting up ssl")
+        print("SETTING UP SSL")
 
         # Make sure the certutil libraries from the source tree are loaded when using a
         # local copy of certutil
@@ -694,15 +702,18 @@ class ProfileCreator:
             # Use empty password for certificate db
             f.write("\n")
 
+
         cert_db_path = profile.profile
 
         # Create a new certificate db
         certutil("-N", "-d", cert_db_path, "-f", pw_path)
 
         # Add the CA certificate to the database and mark as trusted to issue server certs
+        print("INFOOOOO", cert_db_path, pw_path, self.ca_certificate_path)
         certutil("-A", "-d", cert_db_path, "-f", pw_path, "-t", "CT,,",
                  "-n", "web-platform-tests", "-i", self.ca_certificate_path)
 
+        exit()
         # List all certs in the database
         certutil("-L", "-d", cert_db_path)
 
