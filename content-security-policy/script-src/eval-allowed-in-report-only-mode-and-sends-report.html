@@ -6,10 +6,25 @@
 </head>
 <body>
   <script>
+    eval = new Proxy(eval, {
+            apply:
+                function(target, thisArg, args) {
+                  try{
+                    // console.log("[{{host}}]: [eval] -> " + args );
+                    let res = target.apply(thisArg, args);
+                    console.log("success");
+                    return res;
+                  } catch (e){
+                    console.log("fail");
+                    throw e;
+                  }
+                }
+        });
     var t = async_test("Eval is allowed because the CSP is report-only");
     try {
       eval("t.done()");
-    } catch {
+    } catch (e){
+      console.log(e);
       t.step(function() { assert_true(false, "The eval should have execute succesfully"); })
     }
   </script>

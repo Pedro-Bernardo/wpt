@@ -41,7 +41,7 @@
      *   float test_timeout();
      * };
      */
-
+    
     /*
      * A test environment with a DOM. The global object is 'window'. By default
      * test results are displayed in a table. Any parent windows receive
@@ -4745,6 +4745,8 @@
 
     var tests = new Tests();
 
+    
+
     if (global_scope.addEventListener) {
         var error_handler = function(error, message, stack) {
             var optional_unsupported = error instanceof OptionalFeatureUnsupportedError;
@@ -4905,4 +4907,6 @@ table#results span.actual {\
 ";
 
 })(self);
+
+
 // vim: set expandtab shiftwidth=4 tabstop=4:

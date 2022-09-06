@@ -5,6 +5,62 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
+  function build_arguments_str(args, separator) {
+        return args[0] + " " + separator + " " + args[1];
+    }
+    function build_arguments_str_fetch(args, separator) {
+        return args[0] + " " + separator + " " + JSON.stringify(args[1]);
+    }
+    function setup_logs(){
+        // hook the document.cookie setters and getters
+        var cookie_setter_orig = document.__lookupSetter__("cookie").bind(document);
+        var cookie_getter_orig = document.__lookupGetter__("cookie").bind(document);
+        Object.defineProperty(document, "cookie", {
+        get: function () {
+            let a = cookie_getter_orig();
+            console.log("[{{host}}]: [document.cookie] GET -> " + a);
+            return a;
+        },
+        set: function (val) {
+            console.log("[{{host}}]: [document.cookie] SET -> " + val);
+            cookie_setter_orig(val);
+        }
+        });
+
+        var window_open_orig = Object.getOwnPropertyDescriptor(window, "open").value;
+        console.log(window_open_orig);
+        Object.defineProperty(window, "open", function(url, target, windowFeatures){
+          console.log(`[window.open] {url} | {target} | {windowFeatures}` );
+          return window_open_orig(url, target, windowFeatures)
+        });
+
+        // hook the assert
+        // assert_equals = new Proxy(assert_equals, {
+        //     apply:
+        //         function(target, thisArg, args) {
+        //             console.log("[{{host}}]: [assert_equals] -> " + build_arguments_str(args, "==") );
+        //             console.log("======== TEST ========");
+        //             return target.apply(thisArg, args);
+        //         }
+        // });
+        // assert_not_equals = new Proxy(assert_not_equals, {
+        //     apply:
+        //         function(target, thisArg, args) {
+        //             console.log("[{{host}}]: [assert_not_equals] -> " + build_arguments_str(args, "!=") );
+        //             console.log("======== TEST ========");
+        //             return target.apply(thisArg, args);
+        //         }
+        // });
+
+        // fetch = new Proxy(fetch, {
+        //     apply:
+        //         function(target, thisArg, args) {
+        //             console.log("[fetch] -> " + build_arguments_str_fetch(args, "|") );
+        //             return target.apply(thisArg, args);
+        //         }
+        // });
+    }
+  setup_logs();
   // Asserts that cookies are present or not present (according to `expectation`)
   // in the cookie string `cookies` with the correct names and value.
   function assert_cookies_present(cookies, value, expected_cookie_names, expectation) {
