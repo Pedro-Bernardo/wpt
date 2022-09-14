@@ -4171,6 +4171,7 @@
                                ];
 
         log.appendChild(render(summary_template, {num_tests:tests.length}, output_document));
+        window.postMessage ({type: "END", content: "", ts: Date.now()}, "*");
 
         forEach(output_document.querySelectorAll("section#summary label"),
                 function(element)
