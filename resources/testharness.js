@@ -1507,10 +1507,12 @@
           * Test if two primitives are equal or two objects
           * are the same object
           */
+        console.log("RUNNING", actual, expected, description)
         if (typeof actual != typeof expected) {
             assert(false, "assert_equals", description,
                           "expected (" + typeof expected + ") ${expected} but got (" + typeof actual + ") ${actual}",
                           {expected:expected, actual:actual});
+            console.log("returning")
             return;
         }
         assert(same_value(actual, expected), "assert_equals", description,
@@ -4171,7 +4173,8 @@
                                ];
 
         log.appendChild(render(summary_template, {num_tests:tests.length}, output_document));
-        window.postMessage ({type: "END", content: "", ts: Date.now()}, "*");
+
+        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: "", ts: Date.now()}}))
 
         forEach(output_document.querySelectorAll("section#summary label"),
                 function(element)

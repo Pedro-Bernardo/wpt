@@ -5,7 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/cookies/resources/cookie-helper.sub.js"></script>
 <script>
-  function build_arguments_str(args, separator) {
+    function build_arguments_str(args, separator) {
         return args[0] + " " + separator + " " + args[1];
     }
     function build_arguments_str_fetch(args, separator) {
@@ -27,39 +27,49 @@
         }
         });
 
-        var window_open_orig = Object.getOwnPropertyDescriptor(window, "open").value;
-        console.log("INTERCEPTING STUFF")
-        console.log(window_open_orig);
-        Object.defineProperty(window, "open", function(url, target, windowFeatures){
-          console.log(`[window.open] {url} | {target} | {windowFeatures}` );
-          return window_open_orig(url, target, windowFeatures)
-        });
+      window.open = function (open) {
+        return function (url, name, features) {
+            let msg = "[{{host}}]: [window.open] -> " + build_arguments_str([url, name, features], ",") ;
+            console.log(msg);
+            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+            console.log("dispatched")
+            return open.call(window, url, name, features);
+        }
+      }(window.open);
 
         // hook the assert
-        // assert_equals = new Proxy(assert_equals, {
-        //     apply:
-        //         function(target, thisArg, args) {
-        //             console.log("[{{host}}]: [assert_equals] -> " + build_arguments_str(args, "==") );
-        //             console.log("======== TEST ========");
-        //             return target.apply(thisArg, args);
-        //         }
-        // });
-        // assert_not_equals = new Proxy(assert_not_equals, {
-        //     apply:
-        //         function(target, thisArg, args) {
-        //             console.log("[{{host}}]: [assert_not_equals] -> " + build_arguments_str(args, "!=") );
-        //             console.log("======== TEST ========");
-        //             return target.apply(thisArg, args);
-        //         }
-        // });
+        assert_equals = new Proxy(assert_equals, {
+            apply:
+                function(target, thisArg, args) {
+                    let msg = "[{{host}}]: [assert_equals] -> " + build_arguments_str(args, "==") ;
+                    console.log(msg);
+                    window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+                    // console.log("======== TEST ========");
+                    var res = target.apply(thisArg, args)
+                    console.log("RES", res)
+                    return res
+                }
+        });
+        assert_not_equals = new Proxy(assert_not_equals, {
+            apply:
+                function(target, thisArg, args) {
+                    let msg = "[{{host}}]: [assert_not_equals] -> " + build_arguments_str(args, "!=") ;
+                    console.log(msg);
+                    window.postMessage ({type: "EVENT", content: msg, ts: Date.now()}, "*");
+                    // console.log("======== TEST ========");
+                    return target.apply(thisArg, args);
+                }
+        });
 
-        // fetch = new Proxy(fetch, {
-        //     apply:
-        //         function(target, thisArg, args) {
-        //             console.log("[fetch] -> " + build_arguments_str_fetch(args, "|") );
-        //             return target.apply(thisArg, args);
-        //         }
-        // });
+        fetch = new Proxy(fetch, {
+            apply:
+                function(target, thisArg, args) {
+                    let msg = "[fetch] -> " + build_arguments_str_fetch(args, "|") ;
+                    console.log(msg);
+                    window.postMessage ({type: "EVENT", content: msg, ts: Date.now()}, "*");
+                    return target.apply(thisArg, args);
+                }
+        });
     }
   setup_logs();
   // Asserts that cookies are present or not present (according to `expectation`)
@@ -107,6 +117,7 @@
       let parent_url = SECURE_ORIGIN + "/cookies/samesite/resources/navigate-iframe.html";
       let iframe_url_from = iframe_origin_from + "/cookies/samesite/resources/navigate.html";
       let iframe_url_to = iframe_origin_to + "/cookies/resources/setSameSite.py?" + value;
+      console.log("opening window", window.open)
       var w = window.open(parent_url);
       await wait_for_message('LOADED', SECURE_ORIGIN);
       assert_equals(SECURE_ORIGIN, window.origin);
