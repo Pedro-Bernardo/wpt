@@ -715,6 +715,8 @@
      * given file and must be invariant between runs.
      */
     function promise_test(func, name, properties) {
+        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: "", ts: Date.now()}}))
+
         if (typeof func !== "function") {
             properties = name;
             name = func;

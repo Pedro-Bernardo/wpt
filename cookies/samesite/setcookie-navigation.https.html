@@ -27,33 +27,66 @@
         }
         });
 
-      window.open = function (open) {
-        return function (url, name, features) {
-            let msg = "[{{host}}]: [window.open] -> " + build_arguments_str([url, name, features], ",") ;
-            console.log(msg);
-            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
-            console.log("dispatched")
-            return open.call(window, url, name, features);
-        }
-      }(window.open);
+      // window.open = function (open) {
+      //   return function (url, name, features) {
+      //       let msg = "[{{host}}]: [window.open] -> " + build_arguments_str([url, name, features], ",") ;
+      //       console.log(msg);
+      //       top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+      //       console.log("WINDOW IN HANDLER", window)
+      //       return open.call(window, url, name, features);
+      //   }
+      // }(window.open);
+
+        // var window_open_orig = Object.getOwnPropertyDescriptor(window, "open").value;
+        //   console.log(window_open_orig);
+        //   Object.defineProperty(window, "open", function(url, target, windowFeatures){
+        //     console.log(`[window.open] {url} | {target} | {windowFeatures}` );
+        //     return window_open_orig(url, target, windowFeatures)
+        // });
+        // console.log(window_open_orig)
+        console.log(Object.getOwnPropertyDescriptor(top.window, "open").value )
+        console.log(window.open)
+        console.log(window)
 
         // hook the assert
         assert_equals = new Proxy(assert_equals, {
             apply:
                 function(target, thisArg, args) {
-                    let msg = "[{{host}}]: [assert_equals] -> " + build_arguments_str(args, "==") ;
+                    let msg = `AssertEquals(${args[0]}, ${args[1]})` ;
                     console.log(msg);
-                    window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+                    var d = top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+                    console.log("WINDOW IN ASSERT", window)
                     // console.log("======== TEST ========");
                     var res = target.apply(thisArg, args)
-                    console.log("RES", res)
+                    console.log("RES", res, d)
+                    return res
+                }
+        });
+        assert_true = new Proxy(assert_true, {
+            apply:
+                function(target, thisArg, args) {
+                    let msg = `AssertTrue(${args[0]})` ;
+                    console.log(msg);
+                    var d = top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+                    // console.log("======== TEST ========");
+                    var res = target.apply(thisArg, args)
+                    return res
+                }
+        });
+        assert_false = new Proxy(assert_false, {
+            apply:
+                function(target, thisArg, args) {
+                    let msg = `AssertFalse(${args[0]})` ;
+                    console.log(msg);
+                    var d = top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+                    var res = target.apply(thisArg, args)
                     return res
                 }
         });
         assert_not_equals = new Proxy(assert_not_equals, {
             apply:
                 function(target, thisArg, args) {
-                    let msg = "[{{host}}]: [assert_not_equals] -> " + build_arguments_str(args, "!=") ;
+                    let msg = `AssertNotEquals(${args[0]}, ${args[1]})` ;
                     console.log(msg);
                     window.postMessage ({type: "EVENT", content: msg, ts: Date.now()}, "*");
                     // console.log("======== TEST ========");
@@ -117,8 +150,9 @@
       let parent_url = SECURE_ORIGIN + "/cookies/samesite/resources/navigate-iframe.html";
       let iframe_url_from = iframe_origin_from + "/cookies/samesite/resources/navigate.html";
       let iframe_url_to = iframe_origin_to + "/cookies/resources/setSameSite.py?" + value;
-      console.log("opening window", window.open)
-      var w = window.open(parent_url);
+      console.log("opening window", window)
+      console.log(Object.getOwnPropertyDescriptor(window, "open"))
+      var w = window.open(parent_url, "abcd");
       await wait_for_message('LOADED', SECURE_ORIGIN);
       assert_equals(SECURE_ORIGIN, window.origin);
       assert_equals(SECURE_ORIGIN, w.origin);
