@@ -715,7 +715,7 @@
      * given file and must be invariant between runs.
      */
     function promise_test(func, name, properties) {
-        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: "", ts: Date.now()}}))
+        // await new Promise(r => setTimeout(r, 2000));
 
         if (typeof func !== "function") {
             properties = name;
@@ -730,10 +730,13 @@
         if (!tests.promise_tests) {
             tests.promise_tests = Promise.resolve();
         }
+        console.log("TEST", name)
         tests.promise_tests = tests.promise_tests.then(function() {
             return new Promise(function(resolve) {
+                window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': name, 'props': properties}, ts: Date.now()}}))
                 var promise = test.step(func, test, test);
 
+                console.log("STEPPING", name)
                 test.step(function() {
                     assert(!!promise, "promise_test", null,
                            "test body must return a 'thenable' object (received ${value})",
@@ -750,6 +753,8 @@
                 // user-provided Promise to avoid timeouts in cases where the
                 // Promise does not settle but a `step` function has thrown an
                 // error.
+                
+                console.log("ADDING CALLBACK", name, resolve)
                 add_test_done_callback(test, resolve);
 
                 Promise.resolve(promise)
@@ -762,6 +767,7 @@
                                    "Unhandled rejection with value: ${value}", {value:value});
                         }))
                     .then(function() {
+                        console.log("DONE", name)
                         test.done();
                     });
                 });
@@ -1435,10 +1441,13 @@
                 if (tests.output) {
                     tests.set_assert(name, args);
                 }
+                window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "ASSERT", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'orig': document.URL, 'frame': window.frameElement, 'name': name, 'test': tests.current_test.name, 'args': args}, ts: Date.now()}}))
                 const rv = f.apply(undefined, args);
                 status = Test.statuses.PASS;
+                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 1}, ts: Date.now()}}))
                 return rv;
             } catch(e) {
+                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 0}, ts: Date.now()}}))
                 status = Test.statuses.FAIL;
                 stack = e.stack ? e.stack : null;
                 throw e;
@@ -2637,7 +2646,14 @@
         }
 
         return function()
-        {
+        {   
+            // console.log("ARGS", arguments[0])Vjj
+            // console.log("ARGS2", arguments)
+            // console.log("ARGS", func.toString())
+            
+            var msg = {'isSecure': window.isSecureContext ,'orig': document.url, 'frame': frameElement, 'type': `Step`, 'args': [func.toString(), "RESPONSE PLACEHOLDER"]}
+            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+
             return test_this.step.apply(test_this, [func, this_obj].concat(
                 Array.prototype.slice.call(arguments)));
         };
@@ -2907,6 +2923,7 @@
      */
     Test.prototype.done = function()
     {
+
         if (this.phase >= this.phases.CLEANING) {
             return;
         }
@@ -2925,6 +2942,7 @@
                         this.name);
         }
 
+        console.log("TEST: ", this.name, this.PASS, this.FAIL)
         this.cleanup();
     };
 
@@ -2944,6 +2962,8 @@
      * be cancelled.
      */
     Test.prototype.cleanup = function() {
+        // console.log("ENDING", this)
+        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name, 'status': !this.status}, ts: Date.now()}}))
         var errors = [];
         var bad_value_count = 0;
         function on_error(e) {
@@ -3652,6 +3672,7 @@
                       }
                   },
                   all_complete);
+        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': this.name, 'status': 1}, ts: Date.now()}}))
     };
 
     Tests.prototype.set_assert = function(assert_name, args) {
@@ -4173,10 +4194,12 @@
                                     return rv;
                                 },
                                ];
-
-        log.appendChild(render(summary_template, {num_tests:tests.length}, output_document));
-
-        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: "", ts: Date.now()}}))
+        
+        let res = render(summary_template, {num_tests:tests.length}, output_document);
+        log.appendChild(res);
+        // maybe parse the test result and send the information to the trace 
+        // console.log("RESULT", tests)
+        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: "", ts: Date.now()}}))
 
         forEach(output_document.querySelectorAll("section#summary label"),
                 function(element)
@@ -4911,6 +4934,37 @@ table#results span.actual {\
     white-space:pre;\
 }\
 ";
+
+
+// window.postMessage = function (postMessage) {
+//     return function (message, targetOrigin) {
+//         var msg = {'orig': document.URL, 'frame': window.frameElement, 'type': 'PostMessage', 'args': [message, targetOrigin]}
+//         console.log(msg);
+//         top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+//         if (!targetOrigin){
+//             return postMessage.call(window, message, "*");
+//         } else {
+//             return postMessage.call(window, message, targetOrigin);
+//         }
+//     }
+// }(window.postMessage);
+
+// var location_setter_orig = window.__lookupSetter__("location").bind(window);
+// var location_getter_orig = window.__lookupGetter__("location").bind(window);
+// Object.defineProperty(window, "location", {
+// get: function () {
+//     let a = location_getter_orig();
+//     let msg = `(${document.url}[${window.frameElement}]) : WindowLocationGet` + a;
+//     top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+//     return a;
+// },
+// set: function (val) {
+//     let msg = `(${document.url}[${window.frameElement}]) : WindowLocationSet` + val;
+//     top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+//     location_setter_orig(val);
+// }
+// });
+// })(self);
 
 })(self);
 
