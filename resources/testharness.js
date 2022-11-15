@@ -733,7 +733,8 @@
         console.log("TEST", name)
         tests.promise_tests = tests.promise_tests.then(function() {
             return new Promise(function(resolve) {
-                window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': name, 'props': properties}, ts: Date.now()}}))
+                // console.log("STARTIIING")
+                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': name, 'props': properties}, ts: Date.now()}}))
                 var promise = test.step(func, test, test);
 
                 console.log("STEPPING", name)
@@ -2572,6 +2573,11 @@
     {
         if (this.phase > this.phases.STARTED) {
             return;
+        }
+        
+        if (this.phase !== this.phases.STARTED) {
+            console.log("STARTIIING")
+            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name}, ts: Date.now()}}))
         }
 
         if (settings.debug && this.phase !== this.phases.STARTED) {
@@ -4774,6 +4780,8 @@
 
     var tests = new Tests();
 
+    // install service workers
+    // for     
     
 
     if (global_scope.addEventListener) {
