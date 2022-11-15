@@ -1442,13 +1442,13 @@
                 if (tests.output) {
                     tests.set_assert(name, args);
                 }
-                window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "ASSERT", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'orig': document.URL, 'frame': window.frameElement, 'name': name, 'test': tests.current_test.name, 'args': args}, ts: Date.now()}}))
+                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "ASSERT", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'orig': document.URL, 'frame': window.frameElement, 'name': name, 'test': tests.current_test.name, 'args': args}, ts: Date.now()}}))
                 const rv = f.apply(undefined, args);
                 status = Test.statuses.PASS;
-                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 1}, ts: Date.now()}}))
+                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 1}, ts: performance.now()}}))
                 return rv;
             } catch(e) {
-                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 0}, ts: Date.now()}}))
+                // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 0}, ts: performance.now()}}))
                 status = Test.statuses.FAIL;
                 stack = e.stack ? e.stack : null;
                 throw e;
@@ -2578,6 +2578,7 @@
         if (this.phase !== this.phases.STARTED) {
             console.log("STARTIIING")
             window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name}, ts: Date.now()}}))
+            
         }
 
         if (settings.debug && this.phase !== this.phases.STARTED) {
@@ -3678,7 +3679,7 @@
                       }
                   },
                   all_complete);
-        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': this.name, 'status': 1}, ts: Date.now()}}))
+        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': this.name, 'status': 1}, ts: performance.now()}}))
     };
 
     Tests.prototype.set_assert = function(assert_name, args) {
@@ -4205,7 +4206,7 @@
         log.appendChild(res);
         // maybe parse the test result and send the information to the trace 
         // console.log("RESULT", tests)
-        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: "", ts: Date.now()}}))
+        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: "", ts: performance.now()}}))
 
         forEach(output_document.querySelectorAll("section#summary label"),
                 function(element)
@@ -4948,7 +4949,7 @@ table#results span.actual {\
 //     return function (message, targetOrigin) {
 //         var msg = {'orig': document.URL, 'frame': window.frameElement, 'type': 'PostMessage', 'args': [message, targetOrigin]}
 //         console.log(msg);
-//         top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+//         top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: performance.now()}}))
 //         if (!targetOrigin){
 //             return postMessage.call(window, message, "*");
 //         } else {
@@ -4963,12 +4964,12 @@ table#results span.actual {\
 // get: function () {
 //     let a = location_getter_orig();
 //     let msg = `(${document.url}[${window.frameElement}]) : WindowLocationGet` + a;
-//     top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+//     top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: performance.now()}}))
 //     return a;
 // },
 // set: function (val) {
 //     let msg = `(${document.url}[${window.frameElement}]) : WindowLocationSet` + val;
-//     top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: Date.now()}}))
+//     top.window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "EVENT", content: msg, ts: performance.now()}}))
 //     location_setter_orig(val);
 // }
 // });
