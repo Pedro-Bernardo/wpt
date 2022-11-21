@@ -19,14 +19,14 @@
     };
 
     // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
-    navigator.serviceWorker.addEventListener('message', event => {
-        try{
-            console.log("GOT THIS FROM THE WORKER", event.data)
-            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: event.data, ts: Date.now()}}))
-        } catch(error) { 
-            console.log("ERROR IN HANDLER POSTMESSAGE WORKER HANDLER", error )
-        }
-    });
+    // navigator.serviceWorker.addEventListener('message', event => {
+    //     try{
+    //         console.log("GOT THIS FROM THE WORKER", event.data)
+    //         window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: event.data, ts: Date.now()}}))
+    //     } catch(error) { 
+    //         console.log("ERROR IN HANDLER POSTMESSAGE WORKER HANDLER", error )
+    //     }
+    // });
 
     var xhtml_ns = "http://www.w3.org/1999/xhtml";
 
@@ -4362,10 +4362,10 @@
         }
 
 
-        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
-        navigator.serviceWorker.ready.then( registration => {
-            registration.active.postMessage("DUMP");
-        });
+        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+        // navigator.serviceWorker.ready.then( registration => {
+        //     registration.active.postMessage("DUMP");
+        // });
     };
 
     /*

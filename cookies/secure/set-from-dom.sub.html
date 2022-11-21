@@ -17,6 +17,7 @@
       "'secure' cookie not set in `document.cookie`",
       function () {
         var originalCookie = document.cookie;
+        console.log("original", originalCookie)
         document.cookie = "secure_from_nonsecure_dom=1; secure; path=/";
         assert_equals(document.cookie, originalCookie);
         this.done();

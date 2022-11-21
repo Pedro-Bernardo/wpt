@@ -22,30 +22,27 @@ self.addEventListener('fetch', (event) => {
 
 		try{
 			console.log('[Service Worker] Fetching resource: ' + event.request.url);
+			let event_ts = Date.now()
 			return fetch(event.request).then(async (response) => {
 				console.log('[Service Worker] Saving response to ' + event.request.url, event.request);
-				logs.requests[event.timeStamp] = {"url": event.request.url, "headers" : event.request.headers, "method" : event.request.method, "bodyUsed": event.request.bodyUsed, "body": event.request.body, 'ts': Date.now()}
+				logs.requests[event_ts] = {"url": event.request.url, "headers" : event.request.headers, "method" : event.request.method, "bodyUsed": event.request.bodyUsed, "body": event.request.body, 'ts': Date.now()}
 				try{
 					// if (!response.url.endsWith(".js")){ // ?? is this ok???
-						let bodies = response.body.tee()
-						// response.body = bodies[0]
-						let content = await (await bodies[1].getReader().read())
-						console.log("content", content)
-						content = new TextDecoder().decode(content.value)
-						console.log(content)
-						logs.responses[event.timeStamp] = {"url": response.url, "headers" : response.headers, "method" : response.method, "bodyUsed": response.bodyUsed, "body": content, "redirected": response.redirected, "status": response.status, "ts":Date.now()}
-						let new_resp = new Response(bodies[0], {status:response.status, statusText: response.statusText, headers: response.headers})
-						Object.defineProperty(new_resp, "type", { value: response.type });
-						Object.defineProperty(new_resp, "url", { value: response.url });
-						Object.defineProperty(new_resp, "bodyUsed", { value: response.bodyUsed });
-						console.log(response, new_resp)
-						return new_resp
-					// } else{
-					// 	logs.responses[event.timeStamp] = {"url": response.url, "headers" : response.headers, "method" : response.method, "bodyUsed": response.bodyUsed, "body": null, "redirected": response.redirected, "status": response.status, "ts":Date.now()}
-					// }
+					let bodies = response.body.tee()
+					// response.body = bodies[0]
+					let content = await (await bodies[1].getReader().read())
+					content = new TextDecoder().decode(content.value)
 
-					// // response.body = bodies[1]
-					// return response
+					logs.responses[event_ts] = {"url": response.url, "headers" : response.headers, "method" : response.method, "bodyUsed": response.bodyUsed, "body": content, "redirected": response.redirected, "status": response.status, "ts":Date.now()}
+
+					let new_resp = new Response(bodies[0], {status:response.status, statusText: response.statusText, headers: response.headers})
+					Object.defineProperty(new_resp, "type", { value: response.type });
+					Object.defineProperty(new_resp, "url", { value: response.url });
+					Object.defineProperty(new_resp, "bodyUsed", { value: response.bodyUsed });
+					console.log(response, new_resp)
+
+					return new_resp
+
 				}catch(error){
 					console.log("DIED 2", error)
 				}
