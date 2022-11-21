@@ -18,6 +18,16 @@
         debug: false,
     };
 
+    // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+    navigator.serviceWorker.addEventListener('message', event => {
+        try{
+            console.log("GOT THIS FROM THE WORKER", event.data)
+            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: event.data, ts: Date.now()}}))
+        } catch(error) { 
+            console.log("ERROR IN HANDLER POSTMESSAGE WORKER HANDLER", error )
+        }
+    });
+
     var xhtml_ns = "http://www.w3.org/1999/xhtml";
 
     /*
@@ -2578,7 +2588,7 @@
         if (this.phase !== this.phases.STARTED) {
             console.log("STARTIIING")
             window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name}, ts: Date.now()}}))
-            
+            console.log("LOG", window)
         }
 
         if (settings.debug && this.phase !== this.phases.STARTED) {
@@ -2970,6 +2980,7 @@
      */
     Test.prototype.cleanup = function() {
         // console.log("ENDING", this)
+        for(let i = 0; i < 1000000; i++);
         window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name, 'status': !this.status}, ts: Date.now()}}))
         var errors = [];
         var bad_value_count = 0;
@@ -4206,7 +4217,7 @@
         log.appendChild(res);
         // maybe parse the test result and send the information to the trace 
         // console.log("RESULT", tests)
-        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: "", ts: performance.now()}}))
+        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
 
         forEach(output_document.querySelectorAll("section#summary label"),
                 function(element)
@@ -4349,6 +4360,12 @@
             log.appendChild(document.createElementNS(xhtml_ns, "pre"))
                .textContent = html;
         }
+
+
+        // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+        navigator.serviceWorker.ready.then( registration => {
+            registration.active.postMessage("DUMP");
+        });
     };
 
     /*
@@ -4975,6 +4992,7 @@ table#results span.actual {\
 // });
 // })(self);
 
+    // window.open('/register_sw.html') // open for each wpt origin, but only for this one for now
 })(self);
 
 

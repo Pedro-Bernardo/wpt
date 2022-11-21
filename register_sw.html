@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <script>
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                console.log(registrations);
+                if (!registrations.length) { 
+                    navigator.serviceWorker.register('sw.js', {scope: '/'})
+                        .then(reg => console.log('ServiceWorker registered successfully with scope: ', reg.scope))
+                        .catch(err => console.log('ServiceWorker reigstration faled: ', err));
+                }
+            }); 
+
+        </script>
+    </body>
+</html>
