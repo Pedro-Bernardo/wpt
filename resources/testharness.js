@@ -1433,6 +1433,7 @@
                 if (tests.output) {
                     tests.set_assert(name, args);
                 }
+                window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "ASSERT", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'orig': document.URL, 'frame': window.frameElement, 'name': name, 'test': tests.current_test.name, 'args': args}, ts: Date.now()}}))
                 const rv = f.apply(undefined, args);
                 status = Test.statuses.PASS;
                 return rv;
@@ -2562,6 +2563,10 @@
             return;
         }
 
+        if (this.phase !== this.phases.STARTED) {
+            window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name}, ts: Date.now()}}))
+        }
+
         if (settings.debug && this.phase !== this.phases.STARTED) {
             console.log("TEST START", this.name);
         }
@@ -2941,6 +2946,9 @@
      * be cancelled.
      */
     Test.prototype.cleanup = function() {
+        for(let i = 0; i < 1000000; i++);
+        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'name': this.name, 'status': !this.status}, ts: Date.now()}}))
+
         var errors = [];
         var bad_value_count = 0;
         function on_error(e) {
@@ -4316,6 +4324,8 @@
             log.appendChild(document.createElementNS(xhtml_ns, "pre"))
                .textContent = html;
         }
+
+        window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
     };
 
     /*
