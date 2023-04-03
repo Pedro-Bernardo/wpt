@@ -1,5 +1,36 @@
 (function() {
     "use strict";
+    let STASH_RESPONDER = "wss://web-platform.test:8889/stash_responder_blocking";
+
+    class StashUtils {
+    static putValue(key, value) {
+        return new Promise(resolve => {
+            const ws = new WebSocket(STASH_RESPONDER);
+            ws.onopen = () => {
+            ws.send(JSON.stringify({action: 'set', key: key, value: value}));
+            };
+            ws.onmessage = e => {
+            ws.close();
+            resolve();
+            };
+        });
+    }
+
+    static takeValue(key) {
+        return new Promise(resolve => {
+        const ws = new WebSocket(STASH_RESPONDER);
+        ws.onopen = () => {
+            ws.send(JSON.stringify({action: 'get', key: key}));
+        };
+        ws.onmessage = e => {
+            ws.close();
+            resolve(JSON.parse(e.data).value);
+        };
+        });
+    }
+    }
+
+
     var idCounter = 0;
     let testharness_context = null;
 
@@ -68,10 +99,24 @@
          **/
         message_test: function(msg) {
             let target = testharness_context;
+            console.log("[PM TARGET]", target, target.__id__, msg, "from", window.__id__)
+
+            console.log("window", window.postMessage)
+            console.log("target", target.postMessage)
             if (testharness_context === null) {
                 target = window;
             }
-            target.postMessage(msg, "*");
+
+            if(window.hasOwnProperty("__id__")){
+                /* we are in an instrumented window, use the Stash to communicate */
+                let new_msg = msg
+                new_msg.source = window.__id__
+                console.log("PUT VALUE IN THE STASH", target.__id__, new_msg)
+                StashUtils.putValue(target.__id__, new_msg)
+            } else {
+                target.postMessage(msg, "*");
+            }
+
         },
 
         /**

@@ -1,47 +1,96 @@
 "use strict";
 
 (function() {
+    let STASH_RESPONDER = "wss://web-platform.test:8889/stash_responder_blocking";
+
+    class StashUtils {
+    static putValue(key, value) {
+        return new Promise(resolve => {
+            const ws = new WebSocket(STASH_RESPONDER);
+            ws.onopen = () => {
+            ws.send(JSON.stringify({action: 'set', key: key, value: value}));
+            };
+            ws.onmessage = e => {
+            ws.close();
+            resolve();
+            };
+        });
+    }
+
+    static takeValue(key) {
+        return new Promise(resolve => {
+        const ws = new WebSocket(STASH_RESPONDER);
+        ws.onopen = () => {
+            ws.send(JSON.stringify({action: 'get', key: key}));
+        };
+        ws.onmessage = e => {
+            ws.close();
+            resolve(JSON.parse(e.data).value);
+        };
+        });
+    }
+    }
     const is_test_context = window.__wptrunner_message_queue !== undefined;
     const pending = new Map();
 
     let result = null;
+    console.log("running testdriver-extra setup", window.__id__, window.location.toString(), window)
     let ctx_cmd_id = 0;
     let testharness_context = null;
 
-    window.addEventListener("message", function(event) {
-        const data = event.data;
-
-        if (typeof data !== "object" && data !== null) {
-            return;
-        }
-
-        if (is_test_context && data.type === "testdriver-command") {
-            const command = data.message;
-            const ctx_id = command.cmd_id;
-            delete command.cmd_id;
-            const cmd_id = window.__wptrunner_message_queue.push(command);
-            let on_success = (data) => {
-                data.type = "testdriver-complete";
-                data.cmd_id = ctx_id;
-                event.source.postMessage(data, "*");
-            };
-            let on_failure = (data) => {
-                data.type = "testdriver-complete";
-                data.cmd_id = ctx_id;
-                event.source.postMessage(data, "*");
-            };
-            pending.set(cmd_id, [on_success, on_failure]);
-        } else if (data.type === "testdriver-complete") {
-            const cmd_id = data.cmd_id;
-            const [on_success, on_failure] = pending.get(cmd_id);
-            pending.delete(cmd_id);
-            const resolver = data.status === "success" ? on_success : on_failure;
-            resolver(data);
-            if (is_test_context) {
-                window.__wptrunner_process_next_event();
+   (function handleTestdriverMsg(){
+        try{
+        console.log("RUNNING LISTENER TAKING VALUE FROM ", window.__id__)
+        console.trace()
+        StashUtils.takeValue(window.__id__).then(mmesg => {
+            console.log("FROM STASH", mmesg)
+            const data = mmesg
+            // const data = event.data;
+            console.log("[testdrver-extra.js|handler]", window, window.location, window.__id__, data, data.source)
+            if (typeof data !== "object" && data !== null) {
+                return;
             }
+
+            if (is_test_context && data.type === "testdriver-command") {
+                const command = data.message;
+                const ctx_id = command.cmd_id;
+                delete command.cmd_id;
+                const cmd_id = window.__wptrunner_message_queue.push(command);
+                let on_success = (dta) => {
+                    dta.type = "testdriver-complete";
+                    dta.cmd_id = ctx_id;
+                    // console.log("event.source | data", event.source.__id__, data.source, dta.source)
+                    // console.log("PUTTING VALUE IN", data.source)
+                    StashUtils.putValue(data.source, dta)
+                    // event.source.postMessage(dta, "*");
+                };
+                let on_failure = (data) => {
+                    dta.type = "testdriver-complete";
+                    dta.cmd_id = ctx_id;
+                    // console.log("event.source (fail) | data", event.source.__id__, data.source, dta.source)
+                    // console.log("PUTTING VALUE IN", data.source)
+                    StashUtils.putValue(data.source, dta)
+                    // event.source.postMessage(dta, "*");
+                };
+                pending.set(cmd_id, [on_success, on_failure]);
+            } else if (data.type === "testdriver-complete") {
+                const cmd_id = data.cmd_id;
+                const [on_success, on_failure] = pending.get(cmd_id);
+                pending.delete(cmd_id);
+                const resolver = data.status === "success" ? on_success : on_failure;
+                resolver(data);
+                if (is_test_context) {
+                    window.__wptrunner_process_next_event();
+                }
+             }
+            
+            handleTestdriverMsg()
+
+            }); 
+        } catch (e) {
+            console.log("failed with", e)
         }
-    });
+    })()
 
     // Code copied from /common/utils.js
     function rand_int(bits) {
@@ -67,6 +116,7 @@
     }
 
     function get_window_id(win) {
+        console.log("[get_window_id]", win)
         if (win == window && is_test_context) {
             return null;
         }
@@ -82,6 +132,7 @@
     }
 
     const get_context = function(element) {
+        console.log("[get_context]", element)
         if (!element) {
             return null;
         }
@@ -89,6 +140,7 @@
         if (!elementWindow) {
             throw new Error("Browsing context for element was detached");
         }
+        console.log("[get_context] ret:", elementWindow)
         return elementWindow;
     };
 
@@ -127,11 +179,14 @@
         const action_msg = {type: "action",
                             action: name,
                             ...props};
+
+        console.log("[create_action]", action_msg)
         if (action_msg.context) {
           action_msg.context = get_window_id(action_msg.context);
         }
         if (is_test_context) {
             cmd_id = window.__wptrunner_message_queue.push(action_msg);
+            console.log("adding action to queue", window.__wptrunner_message_queue)
         } else {
             if (testharness_context === null) {
                 throw new Error("Tried to run in a non-testharness window without a call to set_test_context");
@@ -139,6 +194,11 @@
             if (action_msg.context === null) {
                 action_msg.context = get_window_id(window);
             }
+            console.log("[create_action] cmd_id, ctx_cmd_id", cmd_id, 
+            ctx_cmd_id, 
+            window.__id__, 
+            window.location, action_msg.context.__id__)
+
             cmd_id = ctx_cmd_id++;
             action_msg.cmd_id = cmd_id;
             window.test_driver.message_test({type: "testdriver-command",
@@ -146,10 +206,12 @@
         }
         const pending_promise = new Promise(function(resolve, reject) {
             const on_success = data => {
+                console.log("[on_success]", data)
                 result = JSON.parse(data.message).result;
                 resolve(result);
             };
             const on_failure = data => {
+                console.log("[on_failure]", data)
                 reject(`${data.status}: ${data.message}`);
             };
             pending.set(cmd_id, [on_success, on_failure]);
@@ -173,6 +235,7 @@
     };
 
     window.test_driver_internal.delete_all_cookies = function(context=null) {
+        console.log("[testdriver-extra wrapper] context:", context)
         return create_action("delete_all_cookies", {context});
     };
 

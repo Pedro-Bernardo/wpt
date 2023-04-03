@@ -250,7 +250,26 @@ class WebDriverTestDriverProtocolPart(TestDriverProtocolPart):
         }
         if message:
             obj["message"] = str(message)
-        self.webdriver.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
+
+        script = """
+        let obj = %s;
+        obj.source = window.__id__;
+        console.log('SENDING FROM WEBDRIVER', window.__id__, obj);  
+            
+        new Promise(resolve => { 
+            const ws = new WebSocket('wss://web-platform.test:8889/stash_responder_blocking');
+            ws.onopen = () => {
+                ws.send(JSON.stringify({action: 'set', key: window.__id__, value: obj}));
+            };
+            ws.onmessage = e => {
+            ws.close();
+            resolve();
+            };
+        });
+        window.postMessage(obj, '*');
+        """ % (json.dumps(obj))
+
+        self.webdriver.execute_script(script)
 
     def _switch_to_frame(self, index_or_elem):
         try:
