@@ -1443,6 +1443,31 @@
 
     function expose_assert(f, name) {
         function assert_wrapper(...args) {
+                function strip_proxy(object){
+                    let keys = Object.keys(object)
+
+                    if(!keys){
+                        console.log("returning object")
+                        return object
+                    }
+
+                    if(keys.length == 1 && keys[0] == "0"){ // weird case for when the value is a string
+                        return object.valueOf()
+                    }
+
+                    if(keys.indexOf('proxy_ssdgg7frbdo8UoZP8d4L8wjUkVgSSu1ABTECGCo0') != -1){
+                        console.log("returning vaueof", object, object.valueOf())
+                        return object.valueOf()
+                    } else {
+                        keys.forEach(function(el, idx) {
+                            console.log("iterating", object, object[el])
+                            object[el] = strip_proxy(object[el])
+
+                        });
+                        return object.valueOf()
+                    }
+                }
+
             let status = Test.statuses.TIMEOUT;
             let stack = null;
             try {
@@ -1453,6 +1478,12 @@
                     tests.set_assert(name, args);
                 }
                 // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "ASSERT", content: {'isSecure': window.isSecureContext, 'wid': window.__id__, 'orig': document.URL, 'frame': window.frameElement, 'name': name, 'test': tests.current_test.name, 'args': args}, ts: Date.now()}}))
+                // CALL STRIP PROXY HERE
+                // new_args = new Array()
+                // args.forEach(function(el ,idx) {
+                //         new_args.push(strip_proxy(el))
+                //     }
+                // )
                 const rv = f.apply(undefined, args);
                 status = Test.statuses.PASS;
                 // window.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'name': tests.current_test.name, 'status': 1}, ts: performance.now()}}))
