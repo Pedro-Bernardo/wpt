@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  // Asserts that cookies are present or not present (according to `expectation`)
+  // in the cookie string `cookies` with the correct names and value.
+  function assert_cookies_present(cookies, value, expected_cookie_names, expectation) {
+    for (name of expected_cookie_names) {
+      let re = new RegExp("(?:^|; )" + name + "=" + value + "(?:$|;)");
+      let assertion = expectation ? assert_true : assert_false;
+      assertion(re.test(cookies), "`" + name + "=" + value + "` in cookies");
+    }
+  }
+
+  // Navigate from ORIGIN to |origin_to|, expecting the navigation to set SameSite
+  // cookies on |origin_to|.
+  function do_test(method, proto, host, name, secure, title, expectation) {
+    promise_test(async function(t) {
+      // The cookies don't need to be cleared on each run because |value| is
+      // a new random value on each run, so on each run we are overwriting and
+      // checking for a cookie with a different random value.
+      let value = "" + Math.random();
+      let URL_BASE = `${proto}://${host}:${proto == "https" ? 8443 : 8000}`
+      console.log("URL BASE", URL_BASE)
+      let url_from = URL_BASE + "/cookies/samesite/resources/navigate.html";
+      let url_to = URL_BASE + `/cookies/local-schemes/set-cookie.py?name=${name}&value=${value}&path=%2F${secure ? "&secure=true" : ""}`;
+
+      console.log("OPENED", url_from)
+      var w = window.open(url_from);
+      console.log("WAITING FOR", URL_BASE)
+      await wait_for_message('READY', URL_BASE);
+      let command = (method === "POST") ? "post-form" : "navigate";
+      w.postMessage({ type: command, url: url_to }, "*");
+      let message = await wait_for_message('COOKIES_SET', URL_BASE);
+      assert_cookies_present(message.data.cookies, value, [name], expectation);
+      w.close();
+    }, title);
+  }
+
+
+    const cartesian =
+    (...a) => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())));
+
+    const args = cartesian(["GET", "POST"], ["http", "https"], ["localhost", "127.0.0.1", "foo.localhost", "bar.foo.localhost"], ["foo", "__Host-foo", "__Secure-foo"], [true, false])
+
+    const b = args.map(x => { x.push(x.reduce((y,acc) => {return `${String(y)} ${acc}`})); return x})
+
+    console.log(b)
+
+
+    for(let e of b) {
+        let expectation = (e[3] != "foo" && !e[4]) ? false : true;
+        e.push(expectation)
+
+        console.log(e)
+        do_test(...e)
+    }
+
+
+// bool CanonicalCookie::IsCookiePrefixValid(CanonicalCookie::CookiePrefix prefix,
+//                                           const GURL& url,
+//                                           bool secure,
+//                                           const std::string& domain,
+//                                           const std::string& path) {
+//   if (prefix == CanonicalCookie::COOKIE_PREFIX_SECURE)
+//     return secure && url.SchemeIsCryptographic();
+//   if (prefix == CanonicalCookie::COOKIE_PREFIX_HOST) {
+//     return HasValidHostPrefixAttributes(url, secure, domain, path);
+//   }
+//   return true;
+// }
+
+
+
+
+//   do_test("GET", "http", "localhost", "foo", true, "GET http localhost foo true");
+// //   do_test("GET", "https", "localhost", "foo", true, "GET https localhost foo true");
+//   do_test("GET", "http", "127.0.0.1", "foo", true, "GET http 127.0.0.1 foo true");
+// //   do_test("GET", "https", "127.0.0.1", "foo", true, "GET https 127.0.0.1 foo true");
+//   do_test("GET", "http", "localhost", "__Host-foo", true, "GET http localhost __Host-foo true");
+// //   do_test("GET", "https", "localhost", "__Host-foo", true, "GET https localhost __Host-foo true");
+//   do_test("GET", "http", "127.0.0.1", "__Host-foo", true, "GET http 127.0.0.1 __Host-foo true");
+// //   do_test("GET", "https", "127.0.0.1", "__Host-foo", true, "GET https 127.0.0.1 __Host-foo true");
+//   do_test("GET", "http", "localhost", "__Secure-foo", true, "GET http localhost __Secure-foo true");
+// //   do_test("GET", "https", "localhost", "__Secure-foo", true, "GET https localhost __Secure-foo true");
+//   do_test("GET", "http", "127.0.0.1", "__Secure-foo", true, "GET http 127.0.0.1 __Secure-foo true");
+// //   do_test("GET", "https", "127.0.0.1", "__Secure-foo", true, "GET https 127.0.0.1 __Secure-foo true");
+//   do_test("GET", "http", "localhost", "foo", false, "GET http localhost foo false");
+// //   do_test("GET", "https", "localhost", "foo", false, "GET https localhost foo false");
+//   do_test("GET", "http", "127.0.0.1", "foo", false, "GET http 127.0.0.1 foo false");
+// //   do_test("GET", "https", "127.0.0.1", "foo", false, "GET https 127.0.0.1 foo false");
+//   do_test("GET", "http", "localhost", "__Host-foo", false, "GET http localhost __Host-foo false");
+// //   do_test("GET", "https", "localhost", "__Host-foo", false, "GET https localhost __Host-foo false");
+//   do_test("GET", "http", "127.0.0.1", "__Host-foo", false, "GET http 127.0.0.1 __Host-foo false");
+// //   do_test("GET", "https", "127.0.0.1", "__Host-foo", false, "GET https 127.0.0.1 __Host-foo false");
+//   do_test("GET", "http", "localhost", "__Secure-foo", false, "GET http localhost __Secure-foo false");
+// //   do_test("GET", "https", "localhost", "__Secure-foo", false, "GET https localhost __Secure-foo false");
+//   do_test("GET", "http", "127.0.0.1", "__Secure-foo", false, "GET http 127.0.0.1 __Secure-foo false");
+// //   do_test("GET", "https", "127.0.0.1", "__Secure-foo", false, "GET https 127.0.0.1 __Secure-foo false");
+//   do_test("POST", "http", "localhost", "foo", true, "POST http localhost foo true");
+// //   do_test("POST", "https", "localhost", "foo", true, "POST https localhost foo true");
+//   do_test("POST", "http", "127.0.0.1", "foo", true, "POST http 127.0.0.1 foo true");
+// //   do_test("POST", "https", "127.0.0.1", "foo", true, "POST https 127.0.0.1 foo true");
+//   do_test("POST", "http", "localhost", "__Host-foo", true, "POST http localhost __Host-foo true");
+// //   do_test("POST", "https", "localhost", "__Host-foo", true, "POST https localhost __Host-foo true");
+//   do_test("POST", "http", "127.0.0.1", "__Host-foo", true, "POST http 127.0.0.1 __Host-foo true");
+// //   do_test("POST", "https", "127.0.0.1", "__Host-foo", true, "POST https 127.0.0.1 __Host-foo true");
+//   do_test("POST", "http", "localhost", "__Secure-foo", true, "POST http localhost __Secure-foo true");
+// //   do_test("POST", "https", "localhost", "__Secure-foo", true, "POST https localhost __Secure-foo true");
+//   do_test("POST", "http", "127.0.0.1", "__Secure-foo", true, "POST http 127.0.0.1 __Secure-foo true");
+// //   do_test("POST", "https", "127.0.0.1", "__Secure-foo", true, "POST https 127.0.0.1 __Secure-foo true");
+//   do_test("POST", "http", "localhost", "foo", false, "POST http localhost foo false");
+// //   do_test("POST", "https", "localhost", "foo", false, "POST https localhost foo false");
+//   do_test("POST", "http", "127.0.0.1", "foo", false, "POST http 127.0.0.1 foo false");
+// //   do_test("POST", "https", "127.0.0.1", "foo", false, "POST https 127.0.0.1 foo false");
+//   do_test("POST", "http", "localhost", "__Host-foo", false, "POST http localhost __Host-foo false");
+// //   do_test("POST", "https", "localhost", "__Host-foo", false, "POST https localhost __Host-foo false");
+//   do_test("POST", "http", "127.0.0.1", "__Host-foo", false, "POST http 127.0.0.1 __Host-foo false");
+// //   do_test("POST", "https", "127.0.0.1", "__Host-foo", false, "POST https 127.0.0.1 __Host-foo false");
+//   do_test("POST", "http", "localhost", "__Secure-foo", false, "POST http localhost __Secure-foo false");
+// //   do_test("POST", "https", "localhost", "__Secure-foo", false, "POST https localhost __Secure-foo false");
+//   do_test("POST", "http", "127.0.0.1", "__Secure-foo", false, "POST http 127.0.0.1 __Secure-foo false");
+// //   do_test("POST", "https", "127.0.0.1", "__Secure-foo", false, "POST https 127.0.0.1 __Secure-foo false");
+
+
+</script>
