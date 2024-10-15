@@ -10,11 +10,18 @@ partial interface Navigator {
 
 dictionary AuctionAd {
   required USVString renderURL;
+  USVString sizeGroup;
   any metadata;
 
   USVString buyerReportingId;
   USVString buyerAndSellerReportingId;
   sequence<USVString> allowedReportingOrigins;
+  DOMString adRenderId;
+};
+
+dictionary AuctionAdInterestGroupSize {
+  required USVString width;
+  required USVString height;
 };
 
 dictionary GenerateBidInterestGroup {
@@ -36,6 +43,8 @@ dictionary GenerateBidInterestGroup {
   any userBiddingSignals;
   sequence<AuctionAd> ads;
   sequence<AuctionAd> adComponents;
+  record<DOMString, AuctionAdInterestGroupSize> adSizes;
+  record<DOMString, sequence<DOMString>> sizeGroups;
 };
 
 dictionary AuctionAdInterestGroup : GenerateBidInterestGroup {
@@ -104,11 +113,35 @@ dictionary AuctionAdConfig {
   sequence<AuctionAdConfig> componentAuctions = [];
   AbortSignal? signal;
   Promise<boolean> resolveToConfig;
+
+  Promise<Uint8Array> serverResponse;
+  USVString requestId;
 };
 
 [SecureContext]
 partial interface Navigator {
   boolean canLoadAdAuctionFencedFrame();
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<AdAuctionData> getInterestGroupAdAuctionData(AdAuctionDataConfig config);
+};
+
+dictionary AdAuctionData {
+  required Uint8Array request;
+  required USVString requestId;
+};
+
+dictionary AdAuctionDataConfig {
+  required USVString seller;
+  required USVString coordinatorOrigin;
+  unsigned long requestSize;
+  record<USVString, AdAuctionDataBuyerConfig> perBuyerConfig;
+};
+
+dictionary AdAuctionDataBuyerConfig {
+  unsigned long targetSize;
 };
 
 [SecureContext]
@@ -213,10 +246,8 @@ partial interface HTMLIFrameElement {
   [CEReactions] attribute boolean adAuctionHeaders;
 };
 
-dictionary PreviousWin {
-  required long long timeDelta;
-  required DOMString adJSON;
-};
+typedef (long long or AuctionAd) PreviousWinElement;
+typedef sequence<PreviousWinElement> PreviousWin;
 
 dictionary BiddingBrowserSignals {
   required DOMString topWindowHostname;
