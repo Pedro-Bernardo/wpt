@@ -3835,6 +3835,14 @@
         var this_obj = this;
         var duplicates;
 
+        let ctx = undefined
+        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+            ctx = self
+        } else {
+            ctx = window
+        }
+        ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+
         if (this.status.status === null) {
             duplicates = this.find_duplicates();
 
@@ -4392,13 +4400,13 @@
             }
         }
       
-        let ctx = undefined
-        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
-            ctx = self
-        } else {
-            ctx = window
-        }
-        ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+        // let ctx = undefined
+        // if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+        //     ctx = self
+        // } else {
+        //     ctx = window
+        // }
+        // ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
     };
 
     /*
