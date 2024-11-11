@@ -704,7 +704,7 @@
             }
         } else {
             // In his case, the test might not be stepped at all, and it even if it is, only the first START event counts for each test
-            self.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': self.isSecureContext, 'wid': "worker", 'name': test_name}, ts: Date.now()}}))
+            self.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': self.isSecureContext, 'wid': "worker", 'tid': test_obj.id, 'name': test_name, 'testfile': test_obj.testfile}, ts: Date.now()}}))
         }
         return test_obj;
     }
@@ -2501,6 +2501,10 @@
         }
         /** The test name. */
         this.name = name;
+        /** The test ID **/
+        this.id = (Math.random()+1).toString(36).substring(2);
+        this.stack = get_stack();
+        this.testfile = this.stack.split("at ").slice(-1)[0]
 
         this.phase = (tests.is_aborted || tests.phase === tests.phases.COMPLETE) ?
             this.phases.COMPLETE : this.phases.INITIAL;
@@ -2627,7 +2631,7 @@
                 id = window.__id__
             }
             console.log(`[${Date.now()}] prototype.step START`)
-            ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'wid': id, 'name': this.name}, ts: Date.now()}}))
+            ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'wid': id, 'name': this.name, 'tid' : this.id, 'testfile': this.testfile}, ts: Date.now()}}))
         }
 
         if (settings.debug && this.phase !== this.phases.STARTED) {
@@ -3000,6 +3004,17 @@
                         this.name);
         }
 
+        for(let i = 0; i < 1000000; i++); // TODO: would be great to remove this
+        let ctx = undefined
+        let id = undefined
+        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+            ctx = self
+            id = "worker"
+        } else {
+            ctx = window
+            id = window.__id__
+        }
+        ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'wid': id, 'name': this.name, 'tid': this.id, 'status': this.status, 'testfile': this.testfile}, ts: Date.now()}}))
         this.cleanup();
     };
 
@@ -3019,17 +3034,6 @@
      * be cancelled.
      */
     Test.prototype.cleanup = function() {
-        for(let i = 0; i < 1000000; i++);
-        let ctx = undefined
-        let id = undefined
-        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
-            ctx = self
-            id = "worker"
-        } else {
-            ctx = window
-            id = window.__id__
-        }
-        ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'wid': id, 'name': this.name, 'status': !this.status}, ts: Date.now()}}))
         var errors = [];
         var bad_value_count = 0;
         function on_error(e) {
@@ -3717,7 +3721,7 @@
         }
     };
 
-    Tests.prototype.complete = function() {
+    Tests.prototype.complete = async function() {
         if (this.phase === this.phases.COMPLETE) {
             return;
         }
@@ -3736,6 +3740,15 @@
          * signaled synchronously.
          */
         if (incomplete.length === 0) {
+            let ctx = undefined
+            if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+                ctx = self
+            } else {
+                ctx = window
+            }
+            ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+            await new Promise(r => setTimeout(r, 2000));
+
             all_complete();
             return;
         }
@@ -3834,14 +3847,6 @@
     Tests.prototype.notify_complete = function() {
         var this_obj = this;
         var duplicates;
-
-        let ctx = undefined
-        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
-            ctx = self
-        } else {
-            ctx = window
-        }
-        ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
 
         if (this.status.status === null) {
             duplicates = this.find_duplicates();
