@@ -4590,7 +4590,7 @@
      */
     function assert(expected_true, function_name, description, error, substitutions)
     {
-        if (expected_true !== true && false) {
+        if (expected_true !== true){ // && false) {
             var msg = make_message(function_name, description,
                                    error, substitutions);
             throw new AssertionError(msg);
