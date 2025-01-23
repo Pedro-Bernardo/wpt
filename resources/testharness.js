@@ -1451,7 +1451,7 @@
 
     function expose_assert(f, name) {
         function assert_wrapper(...args) {
-            console.log("ASSERT", name , tests?.current_test?.name, args, f)
+            // console.log("ASSERT", name , tests?.current_test?.name, args, f)
             // calculate the ID
             let id = undefined
             if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
@@ -2504,7 +2504,12 @@
         /** The test ID **/
         this.id = (Math.random()+1).toString(36).substring(2);
         this.stack = get_stack();
-        this.testfile = this.stack.split("at ").slice(-1)[0]
+        // TODO: make this cross-browser
+        
+        let u = navigator.userAgent.includes("Firefox") ? new URL(this.stack.split("@").slice(-1)[0]) : new URL(this.stack.split("at ").slice(-1)[0])
+        console.error(u)
+        console.error(this.stack)
+        this.testfile = `${u.origin}${u.pathname.split(":")[0]}`.replace(":", "|")
 
         this.phase = (tests.is_aborted || tests.phase === tests.phases.COMPLETE) ?
             this.phases.COMPLETE : this.phases.INITIAL;
@@ -3747,7 +3752,7 @@
                 ctx = window
             }
             ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
-            await new Promise(r => setTimeout(r, 2000));
+            // await new Promise(r => setTimeout(r, 2000));
 
             all_complete();
             return;
@@ -4590,7 +4595,7 @@
      */
     function assert(expected_true, function_name, description, error, substitutions)
     {
-        if (expected_true !== true && false) {
+        if (expected_true !== true) {
             var msg = make_message(function_name, description,
                                    error, substitutions);
             throw new AssertionError(msg);
