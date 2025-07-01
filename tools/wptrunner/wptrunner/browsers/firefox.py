@@ -696,11 +696,34 @@ class ProfileCreator:
         """
         preferences = self._load_prefs()
 
+        # load extensions
+        import os
+        exts = os.environ.get("FIREFOX_EXTENSIONS", [])
+        if exts:
+            exts = exts.split(";")
+
         profile = FirefoxProfile(preferences=preferences,
                                  restore=False,
                                  allowlistpaths=self.allow_list_paths,
+                                 addons=exts,
                                  **kwargs)
         self._set_required_prefs(profile)
+
+        proxy = os.environ.get("HTTP_PROXY", None)
+        if proxy:
+          import urllib.parse
+          proxy_url = urllib.parse.urlparse(proxy)
+          proxy_host, proxy_port, *_ = proxy_url.netloc.split(':') + [None]
+          profile.set_preferences({
+            "network.proxy.type": 1,
+            "network.proxy.allow_hijacking_localhost": True,
+            "network.proxy.no_proxies_on": "",
+            "network.proxy.http": proxy_host,
+            "network.proxy.http_port": int(proxy_port),
+            "network.proxy.ssl": proxy_host,
+            "network.proxy.ssl_port": int(proxy_port),
+          })
+
         if self.ca_certificate_path is not None:
             self._setup_ssl(profile)
 

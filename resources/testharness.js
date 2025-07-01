@@ -702,6 +702,9 @@
                 tests.set_status(tests.status.ERROR, msg);
                 tests.complete();
             }
+        } else {
+            // In his case, the test might not be stepped at all, and it even if it is, only the first START event counts for each test
+            self.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'isSecure': self.isSecureContext, 'wid': "worker", 'tid': test_obj.id, 'name': test_name, 'testfile': test_obj.testfile}, ts: Date.now()}}))
         }
         return test_obj;
     }
@@ -711,7 +714,8 @@
      *
      * Promise tests are tests which are represented by a promise
      * object. If the promise is fulfilled the test passes, if it's
-     * rejected the test fails, otherwise the test passes.
+     * rejected the test fails, otherwise the test passestep
+     * u
      *
      * @param {TestFunction} func - Test function. This must return a
      * promise. The test is automatically marked as complete once the
@@ -1453,6 +1457,25 @@
 
     function expose_assert(f, name) {
         function assert_wrapper(...args) {
+            // console.log("ASSERT", name , tests?.current_test?.name, args, f)
+            // calculate the ID
+            let id = undefined
+            if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+                ctx = self
+                id = "worker"
+            } else {
+                ctx = window
+                id = window.__id__
+            }
+            let content = { 'isSecure': self.isSecureContext,
+                    'wid': id,
+                    'type': "Assert",
+                    'name': name,
+                    'test': tests?.current_test?.name,
+                    'args': args,
+                };
+            ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "ASSERT", content: content, ts: Date.now()}}))
+
             let status = Test.statuses.TIMEOUT;
             let stack = null;
             let new_assert_index = null;
@@ -2540,6 +2563,15 @@
         }
         /** The test name. */
         this.name = name;
+        /** The test ID **/
+        this.id = (Math.random()+1).toString(36).substring(2);
+        this.stack = get_stack();
+        // TODO: make this cross-browser
+        
+        let u = navigator.userAgent.includes("Firefox") ? new URL(this.stack.split("@").slice(-1)[0]) : new URL(this.stack.split("at ").slice(-1)[0])
+        console.error(u)
+        console.error(this.stack)
+        this.testfile = `${u.origin}${u.pathname.split(":")[0]}`.replace(":", "|")
 
         this.phase = (tests.is_aborted || tests.phase === tests.phases.COMPLETE) ?
             this.phases.COMPLETE : this.phases.INITIAL;
@@ -2653,6 +2685,20 @@
     {
         if (this.phase > this.phases.STARTED) {
             return;
+        }
+
+        if (this.phase !== this.phases.STARTED) {
+            let ctx = undefined
+            let id = undefined
+            if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+                ctx = self
+                id = "worker"
+            } else {
+                ctx = window
+                id = window.__id__
+            }
+            console.log(`[${Date.now()}] prototype.step START`)
+            ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "START", content: {'wid': id, 'name': this.name, 'tid' : this.id, 'testfile': this.testfile}, ts: Date.now()}}))
         }
 
         if (settings.debug && this.phase !== this.phases.STARTED) {
@@ -3025,6 +3071,17 @@
                         this.name);
         }
 
+        for(let i = 0; i < 1000000; i++); // TODO: would be great to remove this
+        let ctx = undefined
+        let id = undefined
+        if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+            ctx = self
+            id = "worker"
+        } else {
+            ctx = window
+            id = window.__id__
+        }
+        ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "END", content: {'wid': id, 'name': this.name, 'tid': this.id, 'status': this.status, 'testfile': this.testfile}, ts: Date.now()}}))
         this.cleanup();
     };
 
@@ -3734,7 +3791,7 @@
         }
     };
 
-    Tests.prototype.complete = function() {
+    Tests.prototype.complete = async function() {
         if (this.phase === this.phases.COMPLETE) {
             return;
         }
@@ -3753,6 +3810,15 @@
          * signaled synchronously.
          */
         if (incomplete.length === 0) {
+            let ctx = undefined
+            if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+                ctx = self
+            } else {
+                ctx = window
+            }
+            ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
+            // await new Promise(r => setTimeout(r, 2000));
+
             all_complete();
             return;
         }
@@ -4409,7 +4475,14 @@
                 tbody.lastChild.lastChild.appendChild(get_asserts_output(test));
             }
         }
-        log.appendChild(section);
+      
+        // let ctx = undefined
+        // if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+        //     ctx = self
+        // } else {
+        //     ctx = window
+        // }
+        // ctx.dispatchEvent(new CustomEvent('extension_log', {detail: {type: "DOWNLOAD", content: "", ts: Date.now()}}))
     };
 
     /*
@@ -4588,7 +4661,7 @@
      */
     function assert(expected_true, function_name, description, error, substitutions)
     {
-        if (expected_true !== true) {
+        if (expected_true !== true){ // && false) {
             var msg = make_message(function_name, description,
                                    error, substitutions);
             throw new AssertionError(msg);

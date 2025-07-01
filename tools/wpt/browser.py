@@ -411,7 +411,6 @@ class Firefox(Browser):
         if version is None:
             raise ValueError("Failed to find Version key")
         version, channel = self.extract_version_number(version)
-
         rev = None
         if channel == "nightly":
             source_repo = config.get("App", "SourceRepository", fallback=None)
@@ -865,7 +864,7 @@ class ChromeChromiumBase(Browser):
         except (subprocess.CalledProcessError, OSError) as e:
             self.logger.warning(f"Failed to call {binary}: {e}")
             return None
-        m = re.match(r"(?:Google Chrome|Chromium) (.*)", version_string)
+        m = re.match(r"(?:Google Chrome|Chromium|Brave Browser) (.*)", version_string)
         if not m:
             self.logger.warning(f"Failed to extract version from: {version_string}")
             return None
@@ -1105,13 +1104,16 @@ class Chrome(ChromeChromiumBase):
         return download_url
 
     def _get_old_webdriver_url(self, version):
-        """Find a ChromeDriver download URL for Chrome version <= 114
+        """Get a ChromeDriver API URL to download a version of ChromeDriver that matches
+        the browser binary version. Version selection is described here:
+        https://chromedriver.chromium.org/downloads/version-selection"""
 
-        Raises: DownloadNotFoundError if no ChromeDriver download URL is found
-                to match the given Chrome binary.
+        filename = f"chromedriver_{self._chromedriver_api_platform_string}.zip"
 
-        Returns: A ChromeDriver download URL that matches the given Chrome version.
-        """
+        version = self._remove_version_suffix(version)
+
+        parts = version.split(".")
+        assert len(parts) == 4
         latest_url = ("https://chromedriver.storage.googleapis.com/LATEST_RELEASE_"
                       f"{version}")
         try:
